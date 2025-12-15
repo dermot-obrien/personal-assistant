@@ -1,0 +1,12 @@
+{
+  "_description": "Maps Otter folder names to hierarchical topic paths. Upload as 'otter_topic_mapping.json' to your GCS bucket at the root.",
+  "_default_topic": "Personal/Journal",
+  "mappings": {
+    "Daily Journal": "Personal/Journal",
+    "Northpower": "Work/Northpower",
+    "Team Meetings": "Work/Meetings",
+    "Client Calls": "Work/Clients",
+    "Personal Notes": "Personal/Notes",
+    "Learning": "Personal/Learning"
+  }
+}

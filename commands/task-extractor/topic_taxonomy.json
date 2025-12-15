@@ -1,0 +1,252 @@
+{
+  "version": "2.0",
+  "description": "Three-level topic taxonomy for task classification. Upload this file to your GCS bucket root.",
+  "instructions": "Tasks will be classified using these hierarchical topic paths. Use the most specific level that applies.",
+  "topics": [
+    {
+      "path": "Work/Projects/Development",
+      "description": "Software development and coding tasks",
+      "examples": ["feature implementation", "bug fixes", "code reviews"]
+    },
+    {
+      "path": "Work/Projects/Infrastructure",
+      "description": "Infrastructure and DevOps tasks",
+      "examples": ["deployments", "monitoring", "cloud resources"]
+    },
+    {
+      "path": "Work/Projects/Documentation",
+      "description": "Technical documentation and specs",
+      "examples": ["API docs", "architecture diagrams", "runbooks"]
+    },
+    {
+      "path": "Work/Projects/Testing",
+      "description": "Quality assurance and testing tasks",
+      "examples": ["test cases", "QA review", "automation"]
+    },
+    {
+      "path": "Work/Meetings/Internal",
+      "description": "Internal team meetings and syncs",
+      "examples": ["standups", "retrospectives", "1:1s"]
+    },
+    {
+      "path": "Work/Meetings/External",
+      "description": "Client or external stakeholder meetings",
+      "examples": ["client calls", "vendor meetings", "demos"]
+    },
+    {
+      "path": "Work/Meetings/Planning",
+      "description": "Planning and strategy sessions",
+      "examples": ["sprint planning", "roadmap reviews", "kickoffs"]
+    },
+    {
+      "path": "Work/Admin/Reporting",
+      "description": "Reports and status updates",
+      "examples": ["weekly reports", "metrics", "dashboards"]
+    },
+    {
+      "path": "Work/Admin/Process",
+      "description": "Process and workflow management",
+      "examples": ["approvals", "access requests", "compliance"]
+    },
+    {
+      "path": "Work/Admin/Communication",
+      "description": "Work communications and correspondence",
+      "examples": ["emails", "announcements", "newsletters"]
+    },
+    {
+      "path": "Work/Finance/Expenses",
+      "description": "Expense tracking and reimbursements",
+      "examples": ["expense reports", "receipts", "mileage"]
+    },
+    {
+      "path": "Work/Finance/Budget",
+      "description": "Budget planning and tracking",
+      "examples": ["budget reviews", "forecasts", "cost analysis"]
+    },
+    {
+      "path": "Work/Finance/Invoicing",
+      "description": "Invoices and billing",
+      "examples": ["invoice creation", "payment follow-up", "contracts"]
+    },
+    {
+      "path": "Work/HR/Hiring",
+      "description": "Recruitment and onboarding",
+      "examples": ["interviews", "job postings", "onboarding"]
+    },
+    {
+      "path": "Work/HR/Performance",
+      "description": "Performance management and reviews",
+      "examples": ["reviews", "feedback", "goal setting"]
+    },
+    {
+      "path": "Work/HR/Training",
+      "description": "Training and professional development",
+      "examples": ["workshops", "certifications", "mentoring"]
+    },
+    {
+      "path": "Work/Planning/Strategy",
+      "description": "Strategic planning and vision",
+      "examples": ["OKRs", "annual planning", "vision docs"]
+    },
+    {
+      "path": "Work/Planning/Roadmap",
+      "description": "Product and project roadmaps",
+      "examples": ["roadmap updates", "milestone planning", "prioritization"]
+    },
+    {
+      "path": "Work/Planning/Research",
+      "description": "Research and analysis",
+      "examples": ["market research", "competitor analysis", "feasibility studies"]
+    },
+    {
+      "path": "Personal/Health/Medical",
+      "description": "Medical appointments and healthcare",
+      "examples": ["doctor visits", "prescriptions", "checkups"]
+    },
+    {
+      "path": "Personal/Health/Fitness",
+      "description": "Exercise and physical fitness",
+      "examples": ["workouts", "gym", "sports"]
+    },
+    {
+      "path": "Personal/Health/Wellness",
+      "description": "Mental health and wellbeing",
+      "examples": ["meditation", "therapy", "sleep"]
+    },
+    {
+      "path": "Personal/Health/Nutrition",
+      "description": "Diet and nutrition",
+      "examples": ["meal planning", "supplements", "diet tracking"]
+    },
+    {
+      "path": "Personal/Finance/Banking",
+      "description": "Banking and accounts",
+      "examples": ["transfers", "account management", "statements"]
+    },
+    {
+      "path": "Personal/Finance/Investing",
+      "description": "Investments and savings",
+      "examples": ["portfolio review", "contributions", "rebalancing"]
+    },
+    {
+      "path": "Personal/Finance/Bills",
+      "description": "Bills and regular payments",
+      "examples": ["utilities", "subscriptions", "insurance"]
+    },
+    {
+      "path": "Personal/Finance/Taxes",
+      "description": "Tax preparation and filing",
+      "examples": ["tax returns", "deductions", "accountant meetings"]
+    },
+    {
+      "path": "Personal/Learning/Courses",
+      "description": "Structured learning and courses",
+      "examples": ["online courses", "classes", "bootcamps"]
+    },
+    {
+      "path": "Personal/Learning/Reading",
+      "description": "Books and reading",
+      "examples": ["books", "articles", "research papers"]
+    },
+    {
+      "path": "Personal/Learning/Skills",
+      "description": "Skill development and practice",
+      "examples": ["coding practice", "language learning", "hobbies"]
+    },
+    {
+      "path": "Personal/Journal/Reflection",
+      "description": "Daily reflections and journaling",
+      "examples": ["morning pages", "evening review", "gratitude"]
+    },
+    {
+      "path": "Personal/Journal/Goals",
+      "description": "Goal setting and tracking",
+      "examples": ["goal review", "habit tracking", "milestones"]
+    },
+    {
+      "path": "Personal/Journal/Ideas",
+      "description": "Ideas and brainstorming",
+      "examples": ["project ideas", "creative writing", "notes"]
+    },
+    {
+      "path": "Personal/Home/Maintenance",
+      "description": "Home repairs and maintenance",
+      "examples": ["repairs", "appliances", "contractors"]
+    },
+    {
+      "path": "Personal/Home/Cleaning",
+      "description": "Cleaning and organization",
+      "examples": ["deep cleaning", "decluttering", "organizing"]
+    },
+    {
+      "path": "Personal/Home/Shopping",
+      "description": "Household shopping and supplies",
+      "examples": ["groceries", "supplies", "furniture"]
+    },
+    {
+      "path": "Personal/Home/Garden",
+      "description": "Garden and outdoor spaces",
+      "examples": ["lawn care", "planting", "outdoor maintenance"]
+    },
+    {
+      "path": "Personal/Family/Events",
+      "description": "Family events and celebrations",
+      "examples": ["birthdays", "holidays", "reunions"]
+    },
+    {
+      "path": "Personal/Family/Care",
+      "description": "Family care responsibilities",
+      "examples": ["childcare", "eldercare", "pet care"]
+    },
+    {
+      "path": "Personal/Family/Communication",
+      "description": "Staying in touch with family",
+      "examples": ["calls", "visits", "messages"]
+    },
+    {
+      "path": "Personal/Social/Friends",
+      "description": "Friend meetups and activities",
+      "examples": ["dinners", "outings", "calls"]
+    },
+    {
+      "path": "Personal/Social/Events",
+      "description": "Social events and gatherings",
+      "examples": ["parties", "concerts", "community events"]
+    },
+    {
+      "path": "Personal/Social/Networking",
+      "description": "Professional and personal networking",
+      "examples": ["meetups", "conferences", "introductions"]
+    },
+    {
+      "path": "Personal/Travel/Planning",
+      "description": "Trip planning and booking",
+      "examples": ["flights", "hotels", "itineraries"]
+    },
+    {
+      "path": "Personal/Travel/Preparation",
+      "description": "Travel preparation tasks",
+      "examples": ["packing", "documents", "arrangements"]
+    },
+    {
+      "path": "Personal/Travel/Activities",
+      "description": "Activities and experiences while traveling",
+      "examples": ["tours", "restaurants", "sightseeing"]
+    },
+    {
+      "path": "General/Reminders",
+      "description": "Simple reminders and follow-ups",
+      "examples": ["follow up", "check on", "remember to"]
+    },
+    {
+      "path": "General/Research",
+      "description": "General research and lookups",
+      "examples": ["look up", "find out", "compare options"]
+    },
+    {
+      "path": "General/Miscellaneous",
+      "description": "Tasks that don't fit other categories",
+      "examples": ["misc tasks", "one-off items"]
+    }
+  ]
+}

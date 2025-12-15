@@ -1,0 +1,13 @@
+# Handwriting Sync Cloud Function Dependencies
+
+# Cloud Functions framework
+functions-framework==3.*
+
+# Google Cloud Storage
+google-cloud-storage==2.*
+
+# Vertex AI / Gemini
+google-cloud-aiplatform==1.*
+
+# HTTP requests (for GitHub API)
+requests==2.*

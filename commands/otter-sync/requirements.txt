@@ -1,0 +1,14 @@
+functions-framework==3.*
+google-cloud-storage==2.*
+google-cloud-secret-manager==2.*
+google-cloud-pubsub==2.*
+requests==2.*
+tzdata>=2024.1
+
+# OpenTelemetry - 2025 best practices using native OTLP to telemetry.googleapis.com
+# Note: SDK/exporter use 1.x versioning, instrumentation uses 0.x (version = SDK - 1.0)
+opentelemetry-sdk>=1.20.0,<2.0
+opentelemetry-exporter-otlp-proto-grpc>=1.20.0,<2.0
+opentelemetry-instrumentation-requests>=0.41b0,<1.0
+google-auth==2.*
+grpcio==1.*

@@ -1,0 +1,73 @@
+{
+  "otter_id": "speech456",
+  "speech_id": null,
+  "meeting_otid": null,
+  "topic": "General",
+  "title": "Meetingwithspecialchars",
+  "summary": "Summarywithcontrolcharacters",
+  "short_abstract_summary": "",
+  "speech_outline": null,
+  "created_at": "2023-12-16T13:00:00+13:00",
+  "created_at_unix": 1702684800,
+  "start_time": null,
+  "start_time_unix": 0,
+  "end_time": null,
+  "end_time_unix": 0,
+  "duration": null,
+  "timezone": null,
+  "language": null,
+  "speakers_raw": [
+    {
+      "id": 1,
+      "speaker_name": "Speaker"
+    }
+  ],
+  "owner": null,
+  "folder": null,
+  "speakers": [
+    {
+      "id": 1,
+      "name": "Speaker"
+    },
+    {
+      "id": "1",
+      "name": "Speaker"
+    }
+  ],
+  "speaker_names": [
+    "Speaker",
+    "Speaker"
+  ],
+  "speaker_count": 2,
+  "process_finished": null,
+  "process_status": null,
+  "is_low_confidence": null,
+  "shared_emails": null,
+  "shared_groups": null,
+  "public_share_url": null,
+  "link_share": null,
+  "create_method": null,
+  "audio_enabled": null,
+  "hasPhotos": null,
+  "image_urls": null,
+  "segments": [
+    {
+      "speaker": "Speaker",
+      "speaker_id": 1,
+      "text": "Text withnull andbackspacechars",
+      "start_seconds": 0.0,
+      "end_seconds": 3.0,
+      "start_offset_ms": 0,
+      "end_offset_ms": 3000
+    }
+  ],
+  "segment_count": 1,
+  "full_text": "Speaker: Text withnull andbackspacechars",
+  "word_clouds": null,
+  "action_item_count": null,
+  "calendar_meeting_id": null,
+  "calendar_guests": null,
+  "is_meeting_series": null,
+  "has_meeting_series_access": null,
+  "_extra_fields": null
+}
