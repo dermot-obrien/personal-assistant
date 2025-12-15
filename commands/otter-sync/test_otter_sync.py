@@ -895,12 +895,15 @@ class TestLiveOtterAPI:
                 print(f"      [{i}/{len(speeches)}] {title[:40]}... OK")
 
             except Exception as e:
-                errors.append({
+                import traceback
+                error_info = {
                     "id": speech_id,
                     "title": title,
                     "error": str(e),
                     "error_type": type(e).__name__,
-                })
+                    "traceback": traceback.format_exc(),
+                }
+                errors.append(error_info)
                 print(f"      [{i}/{len(speeches)}] {title[:40]}... ERROR: {e}")
 
         # Generate summary report
@@ -926,6 +929,15 @@ class TestLiveOtterAPI:
         print(f"      - Errors: {len(errors)}")
         print(f"      - Output: {output_dir}")
         print(f"      - Report: {report_path}")
+
+        # Print detailed error info for failed conversations
+        if errors:
+            print(f"\n      === FAILED CONVERSATIONS ===")
+            for err in errors:
+                print(f"      ID: {err['id']}")
+                print(f"      Title: {err['title']}")
+                print(f"      Error: {err['error_type']}: {err['error']}")
+                print(f"      ---")
 
         # Assertions
         assert len(results) > 0, "Should have downloaded at least one transcript"
@@ -978,6 +990,98 @@ class TestLiveOtterAPI:
         assert transcript_data["otter_id"] == str(speech_id) or transcript_data["otter_id"] == speech_id
         assert "segments" in transcript_data
         assert "full_text" in transcript_data
+
+    def test_fetch_specific_conversation(self, otter_credentials):
+        """
+        Fetch a specific conversation by ID.
+
+        Set the OTTER_TEST_SPEECH_ID environment variable to test a specific
+        conversation. Useful for debugging failures from test_fetch_all_transcripts.
+
+        Usage:
+            OTTER_TEST_SPEECH_ID=abc123 pytest test_otter_sync.py -v -m live_otter -k "test_fetch_specific"
+        """
+        speech_id = os.environ.get("OTTER_TEST_SPEECH_ID")
+        if not speech_id:
+            pytest.skip("Set OTTER_TEST_SPEECH_ID environment variable to test a specific conversation")
+
+        output_dir = TEST_OUTPUT_DIR / "live_otter" / "specific"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        client = OtterClient(otter_credentials["email"], otter_credentials["password"])
+
+        print(f"\n[1/4] Authenticating with Otter...")
+        client.authenticate()
+        print(f"      Authenticated as user: {client.user_id}")
+
+        print(f"[2/4] Fetching speech: {speech_id}")
+        try:
+            speech = client.get_speech(speech_id)
+        except Exception as e:
+            # Save error details
+            error_path = output_dir / f"error_{speech_id}.json"
+            with open(error_path, "w", encoding="utf-8") as f:
+                import traceback
+                json.dump({
+                    "speech_id": speech_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                }, f, indent=2)
+            print(f"      ERROR: {e}")
+            print(f"      Error saved to: {error_path}")
+            raise
+
+        title = speech.get("title", "Untitled")
+        print(f"      Title: {title}")
+
+        # Save raw speech data
+        print(f"[3/4] Saving raw speech data...")
+        raw_filepath = output_dir / f"raw_{speech_id}.json"
+        with open(raw_filepath, "w", encoding="utf-8") as f:
+            json.dump(speech, f, indent=2, ensure_ascii=False, default=str)
+        print(f"      Raw data: {raw_filepath}")
+
+        # Format and save transcript
+        print(f"[4/4] Formatting transcript...")
+        try:
+            transcript_data = client.format_transcript_json(speech)
+
+            filepath = output_dir / f"transcript_{speech_id}.json"
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(transcript_data, f, indent=2, ensure_ascii=False)
+
+            print(f"      Transcript: {filepath}")
+            print(f"\n      === TRANSCRIPT INFO ===")
+            print(f"      Title: {transcript_data.get('title')}")
+            print(f"      Topic: {transcript_data.get('topic')}")
+            print(f"      Segments: {transcript_data.get('segment_count', 0)}")
+            print(f"      Speakers: {transcript_data.get('speaker_names', [])}")
+            print(f"      Created: {transcript_data.get('created_at')}")
+            print(f"      Duration: {transcript_data.get('duration')} seconds")
+
+            if transcript_data.get('summary'):
+                print(f"      Summary: {transcript_data.get('summary')[:100]}...")
+
+        except Exception as e:
+            import traceback
+            error_path = output_dir / f"format_error_{speech_id}.json"
+            with open(error_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "speech_id": speech_id,
+                    "title": title,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "traceback": traceback.format_exc(),
+                }, f, indent=2)
+            print(f"      FORMAT ERROR: {e}")
+            print(f"      Error saved to: {error_path}")
+            print(f"      Raw data available at: {raw_filepath}")
+            raise
+
+        # Validate
+        assert transcript_data["otter_id"] is not None
+        assert "segments" in transcript_data
 
 
 if __name__ == "__main__":

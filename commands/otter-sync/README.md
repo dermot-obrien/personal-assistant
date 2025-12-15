@@ -372,7 +372,7 @@ def handle_transcript(cloud_event):
    python -m venv venv
    source venv/bin/activate  # or venv\Scripts\activate on Windows
    pip install -r requirements.txt
-   pip install python-dotenv
+   pip install python-dotenv pytest
    ```
 
 2. Copy environment template:
@@ -391,6 +391,70 @@ def handle_transcript(cloud_event):
    functions-framework --target=sync_otter_transcripts --debug
    # Then visit http://localhost:8080
    ```
+
+---
+
+## Testing
+
+The project includes comprehensive unit tests that validate transcript formatting, JSON output, and error handling.
+
+### Running Unit Tests
+
+```bash
+# Run all unit tests (excludes live API tests)
+pytest test_otter_sync.py -v
+
+# Run specific test class
+pytest test_otter_sync.py -v -k "TestOtterClientSanitization"
+
+# Run with coverage
+pytest test_otter_sync.py -v --cov=main
+```
+
+### Test Categories
+
+| Test Class | Description |
+|------------|-------------|
+| `TestOtterClientSanitization` | Text sanitization (control chars, unicode) |
+| `TestOtterClientOutlineParsing` | Speech outline parsing (JSON, Python-style strings) |
+| `TestOtterClientFormatTranscript` | Transcript formatting and structure |
+| `TestTopicMapping` | Folder-to-topic resolution |
+| `TestJsonValidation` | JSON output validation |
+| `TestLocalGCSOutput` | Mock GCS upload to local folder |
+| `TestProcessedIds` | Processed IDs tracking |
+| `TestIntegration` | Full sync workflow simulation |
+| `TestEdgeCases` | Edge cases (empty data, missing fields, long titles) |
+
+### Test Output
+
+Unit tests write output to `test_output/` for inspection:
+- `test_output/transcripts/` - Formatted transcript samples
+- `test_output/gcs/transcripts/` - Simulated GCS uploads
+- `test_output/edge_cases/` - Edge case outputs
+
+### Live API Tests
+
+Live tests connect to the real Otter API and download transcripts. **Disabled by default.**
+
+```bash
+# Run live tests (requires OTTER_EMAIL and OTTER_PASSWORD in .env)
+pytest test_otter_sync.py -v -m live_otter
+
+# Fetch only the latest transcript (quick test)
+pytest test_otter_sync.py -v -m live_otter -k "test_fetch_latest"
+
+# Fetch ALL transcripts and save locally
+pytest test_otter_sync.py -v -m live_otter -k "test_fetch_all"
+
+# Test a specific conversation by ID (useful for debugging failures)
+OTTER_TEST_SPEECH_ID=abc123 pytest test_otter_sync.py -v -m live_otter -k "test_fetch_specific"
+```
+
+**Live test output:**
+- `test_output/live_otter/transcripts/` - All downloaded transcripts as JSON
+- `test_output/live_otter/sync_report.json` - Summary with success/error counts (includes failed conversation IDs and titles)
+- `test_output/live_otter/latest/` - Latest transcript + raw API response
+- `test_output/live_otter/specific/` - Specific conversation test output (raw + formatted)
 
 ---
 
