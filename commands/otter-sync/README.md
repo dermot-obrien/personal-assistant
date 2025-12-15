@@ -451,7 +451,8 @@ OTTER_TEST_SPEECH_ID=abc123 pytest test_otter_sync.py -v -m live_otter -k "test_
 ```
 
 **Live test output:**
-- `test_output/live_otter/transcripts/` - All downloaded transcripts as JSON
+- `test_output/live_otter/transcripts/` - All formatted transcripts as JSON
+- `test_output/live_otter/raw/` - Raw API responses from Otter (useful for debugging)
 - `test_output/live_otter/sync_report.json` - Summary with success/error counts
 - `test_output/live_otter/failed_conversations.json` - Detailed error info for failed conversations (ID, title, error, traceback)
 - `test_output/live_otter/latest/` - Latest transcript + raw API response

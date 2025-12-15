@@ -817,11 +817,13 @@ class TestLiveOtterAPI:
         1. Authenticates with Otter API
         2. Retrieves all available speeches (up to 500)
         3. Downloads full transcript for each
-        4. Formats and saves as JSON to local folder
+        4. Saves raw API response and formatted transcript as JSON
         5. Generates a summary report
         """
         output_dir = TEST_OUTPUT_DIR / "live_otter" / "transcripts"
+        raw_dir = TEST_OUTPUT_DIR / "live_otter" / "raw"
         output_dir.mkdir(parents=True, exist_ok=True)
+        raw_dir.mkdir(parents=True, exist_ok=True)
 
         client = OtterClient(otter_credentials["email"], otter_credentials["password"])
 
@@ -877,6 +879,11 @@ class TestLiveOtterAPI:
                 # Get full speech data
                 speech = client.get_speech(speech_id)
 
+                # Save raw speech data immediately (useful for debugging if formatting fails)
+                raw_filepath = raw_dir / f"raw_{speech_id}.json"
+                with open(raw_filepath, "w", encoding="utf-8") as f:
+                    json.dump(speech, f, indent=2, ensure_ascii=False, default=str)
+
                 # Determine folder/topic
                 folder_field = None
                 if speech and isinstance(speech, dict):
@@ -919,6 +926,7 @@ class TestLiveOtterAPI:
                     "segment_count": transcript_data.get("segment_count", 0) if transcript_data else 0,
                     "speaker_count": len(set(transcript_data.get("speaker_names", []) or [])) if transcript_data else 0,
                     "filename": filename,
+                    "raw_filename": f"raw_{speech_id}.json",
                 })
 
                 print(f"      [{i}/{len(speeches)}] {(title or 'Untitled')[:40]}... OK")
@@ -945,6 +953,7 @@ class TestLiveOtterAPI:
             "successful": len(results),
             "failed": len(errors),
             "output_directory": str(output_dir),
+            "raw_directory": str(raw_dir),
             "transcripts": results,
             "errors": errors,
         }
@@ -957,7 +966,8 @@ class TestLiveOtterAPI:
         print(f"      - Total speeches: {len(speeches)}")
         print(f"      - Successfully saved: {len(results)}")
         print(f"      - Errors: {len(errors)}")
-        print(f"      - Output: {output_dir}")
+        print(f"      - Transcripts: {output_dir}")
+        print(f"      - Raw data: {raw_dir}")
         print(f"      - Report: {report_path}")
 
         # Print detailed error info for failed conversations
