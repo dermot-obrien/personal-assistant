@@ -240,24 +240,85 @@ class OtterClient:
 
         return folder_map
 
-    def get_speeches(self, page_size: int = 50) -> list[dict]:
-        """Get list of all speeches/conversations."""
+    def get_speeches(self, page_size: int = 500, fetch_all: bool = True) -> list[dict]:
+        """
+        Get list of speeches/conversations.
+
+        Args:
+            page_size: Number of speeches per API request. Default 500 to fetch all in one request.
+                       The Otter API doesn't support proper cursor-based pagination, so use a large
+                       page_size to get all speeches. Max tested: 1000.
+            fetch_all: If True, attempt to paginate (though Otter API pagination is unreliable).
+
+        Returns:
+            List of speech metadata dictionaries
+        """
         if not self._authenticated:
             self.authenticate()
 
         url = f"{self.BASE_URL}/speeches"
-        params = {
-            "userid": self.user_id,
-            "page_size": page_size,
-            "source": "owned",
-        }
+        all_speeches = []
+        end_cursor = None
+        page_num = 0
 
-        response = self.session.get(url, params=params)
+        while True:
+            page_num += 1
+            params = {
+                "userid": self.user_id,
+                "page_size": page_size,
+                "source": "owned",
+            }
+            if end_cursor:
+                params["end_cursor"] = end_cursor
 
-        if response.status_code == 200:
-            return response.json().get("speeches", [])
+            response = self.session.get(url, params=params)
 
-        raise Exception(f"Failed to get speeches: {response.status_code}")
+            if response.status_code != 200:
+                raise Exception(f"Failed to get speeches: {response.status_code}")
+
+            data = response.json()
+            speeches = data.get("speeches", [])
+            all_speeches.extend(speeches)
+
+            # Log pagination info for debugging
+            log_structured("DEBUG", f"Fetched page {page_num}: {len(speeches)} speeches",
+                          event="pagination_debug",
+                          page=page_num,
+                          speeches_in_page=len(speeches),
+                          total_so_far=len(all_speeches),
+                          end_cursor=data.get("end_cursor"),
+                          has_more=data.get("has_more"),
+                          response_keys=list(data.keys()))
+
+            # Check if we should continue paginating
+            if not fetch_all:
+                break
+
+            # Check for more pages using multiple indicators
+            end_cursor = data.get("end_cursor")
+            has_more = data.get("has_more", False)
+
+            # Stop if no more data indicators
+            if not end_cursor and not has_more:
+                break
+
+            # Stop if we got fewer results than requested (last page)
+            if len(speeches) < page_size and not has_more:
+                break
+
+            # Safety limit to prevent infinite loops
+            if page_num >= 50:
+                log_structured("WARNING", f"Pagination safety limit reached at {page_num} pages",
+                              event="pagination_limit",
+                              total_speeches=len(all_speeches))
+                break
+
+        log_structured("INFO", f"Fetched {len(all_speeches)} total speeches in {page_num} page(s)",
+                      event="speeches_fetched",
+                      total=len(all_speeches),
+                      pages=page_num)
+
+        return all_speeches
 
     def get_speech(self, speech_id: str) -> dict:
         """Get full speech details including transcript."""

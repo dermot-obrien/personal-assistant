@@ -837,9 +837,9 @@ class TestLiveOtterAPI:
         folder_map = client.get_folder_speech_mapping()
         print(f"      Found {len(folder_map)} speeches in folders")
 
-        # Get all speeches (large page size to get everything)
-        print("[3/5] Fetching speech list...")
-        speeches = client.get_speeches(page_size=500)
+        # Get all speeches (pagination is now automatic with fetch_all=True)
+        print("[3/5] Fetching speech list (with pagination)...")
+        speeches = client.get_speeches(page_size=100, fetch_all=True)
         print(f"      Found {len(speeches)} total speeches")
 
         # Process each speech
