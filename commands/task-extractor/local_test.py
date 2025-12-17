@@ -137,7 +137,8 @@ def test_extraction_dry_run(bucket_name: str, blob_path: str):
     from main import (
         get_transcript_content,
         get_topic_taxonomy,
-        extract_tasks_with_gemini
+        extract_tasks_with_gemini,
+        get_taxonomy_paths
     )
 
     project_id = os.environ.get("GCP_PROJECT")
@@ -145,7 +146,7 @@ def test_extraction_dry_run(bucket_name: str, blob_path: str):
         print("Error: GCP_PROJECT environment variable is required")
         return
 
-    print(f"\n=== Dry Run: Task Extraction ===")
+    print(f"\n=== Dry Run: Task Extraction (Constrained Output) ===")
     print(f"Transcript: {blob_path}")
     print("-" * 60)
 
@@ -159,22 +160,30 @@ def test_extraction_dry_run(bucket_name: str, blob_path: str):
     # Load taxonomy
     print("\n2. Loading topic taxonomy...")
     taxonomy = get_topic_taxonomy(bucket_name)
-    print(f"   Topics: {len(taxonomy.get('topics', []))}")
+    taxonomy_paths = get_taxonomy_paths(taxonomy)
+    print(f"   Topics: {len(taxonomy_paths)}")
+    print(f"   Valid categories: {', '.join(taxonomy_paths)}")
+    print(f"   Using constrained output: YES (response_schema enforced)")
 
     # Extract tasks
     print("\n3. Extracting tasks with Gemini...")
     print("   (This may take a few seconds)")
 
+    import time
+    start_time = time.time()
     tasks_result = extract_tasks_with_gemini(transcript, project_id, taxonomy)
+    elapsed = time.time() - start_time
 
     tasks = tasks_result.get("tasks", [])
-    print(f"\n   Found {len(tasks)} tasks")
+    print(f"\n   Found {len(tasks)} tasks in {elapsed:.2f}s")
 
     if tasks:
         print("\n=== Extracted Tasks ===")
         for i, task in enumerate(tasks, 1):
             print(f"\n{i}. {task.get('description')}")
-            print(f"   Topic: {task.get('primary_topic')}")
+            print(f"   Primary Topic: {task.get('primary_topic')}")
+            if task.get("secondary_topics"):
+                print(f"   Secondary Topics: {', '.join(task.get('secondary_topics'))}")
             print(f"   Priority: {task.get('priority')}")
             if task.get("assignee"):
                 print(f"   Assignee: {task.get('assignee')}")
@@ -182,6 +191,21 @@ def test_extraction_dry_run(bucket_name: str, blob_path: str):
                 print(f"   Deadline: {task.get('deadline')}")
             if task.get("context"):
                 print(f"   Context: {task.get('context')[:100]}...")
+
+        # Validate that all topics are in taxonomy
+        print("\n=== Taxonomy Validation ===")
+        all_valid = True
+        for task in tasks:
+            primary = task.get("primary_topic")
+            if primary not in taxonomy_paths:
+                print(f"   [INVALID] Primary topic '{primary}' not in taxonomy")
+                all_valid = False
+            for secondary in task.get("secondary_topics", []):
+                if secondary not in taxonomy_paths:
+                    print(f"   [INVALID] Secondary topic '{secondary}' not in taxonomy")
+                    all_valid = False
+        if all_valid:
+            print("   [OK] All topics are valid taxonomy paths")
 
     if tasks_result.get("summary"):
         print(f"\nSummary: {tasks_result.get('summary')}")

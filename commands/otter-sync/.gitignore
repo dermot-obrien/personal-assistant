@@ -13,10 +13,9 @@ venv/
 # IDE
 .idea/
 .vscode/
-*.swp
-*.swo
 
 # Test artifacts
 .pytest_cache/
 .coverage
 htmlcov/
+test_output/

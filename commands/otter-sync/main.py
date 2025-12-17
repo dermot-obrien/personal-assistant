@@ -817,7 +817,7 @@ def sync_otter_transcripts(request):
     - PUBSUB_TOPIC: (Optional) Pub/Sub topic ID for transcript events
 
     Optional request body (JSON):
-    - page_size: Number of speeches to fetch (default: 50)
+    - page_size: Number of speeches to fetch (default: 500, to get all speeches)
     - force_latest: Re-process the most recent conversation (default: false)
     """
     # Initialize OpenTelemetry tracer
@@ -838,7 +838,7 @@ def sync_otter_transcripts(request):
             except Exception:
                 pass
 
-            page_size = request_data.get("page_size", 50)
+            page_size = request_data.get("page_size", 500)
             force_latest = request_data.get("force_latest", False)
 
             # Get configuration
@@ -1074,7 +1074,7 @@ def start_cycle(cloud_event):
     This allows the sync to be initiated via Pub/Sub instead of HTTP.
 
     The Pub/Sub message can optionally include:
-    - page_size: Number of speeches to fetch (default: 50)
+    - page_size: Number of speeches to fetch (default: 500, to get all speeches)
     - force_latest: If true, re-process the most recent conversation even if
                     already processed. Useful for testing (default: false)
 
@@ -1153,7 +1153,7 @@ def start_cycle(cloud_event):
             pubsub_topic = os.environ.get("PUBSUB_TOPIC")
 
             # Allow page_size and force_latest override from message
-            page_size = message_data.get("page_size", 50)
+            page_size = message_data.get("page_size", 500)
             force_latest = message_data.get("force_latest", False)
 
             log_structured("INFO", "========== OTTER SYNC STARTED (PUB/SUB) ==========",

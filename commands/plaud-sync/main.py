@@ -55,7 +55,7 @@ class PlaudClient:
             "Referer": f"{self.WEB_BASE_URL}/",
         })
 
-    def get_recordings(self, page: int = 1, page_size: int = 50) -> dict:
+    def get_recordings(self, page: int = 1, page_size: int = 500) -> dict:
         """
         Get list of recordings/files.
 
@@ -350,7 +350,7 @@ def sync_plaud_transcripts(request):
 
         # Get recordings
         try:
-            recordings_response = plaud.get_recordings(page_size=50)
+            recordings_response = plaud.get_recordings(page_size=500)
         except Exception as e:
             return {"error": f"Failed to fetch recordings: {e}"}, 500
 

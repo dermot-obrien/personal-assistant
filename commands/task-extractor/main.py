@@ -13,7 +13,7 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from zoneinfo import ZoneInfo
 
 import functions_framework
@@ -126,6 +126,135 @@ def format_taxonomy_for_prompt(taxonomy: dict) -> str:
     return "\n".join(lines)
 
 
+def get_taxonomy_paths(taxonomy: dict) -> List[str]:
+    """Extract list of valid taxonomy paths from taxonomy dict.
+
+    Args:
+        taxonomy: The topic taxonomy dict
+
+    Returns:
+        List of valid taxonomy path strings
+    """
+    paths = [topic.get("path") for topic in taxonomy.get("topics", []) if topic.get("path")]
+    # Ensure "General" is always available as fallback
+    if "General" not in paths:
+        paths.append("General")
+    return paths
+
+
+def build_response_schema(taxonomy_paths: List[str]) -> dict:
+    """Build JSON schema for constrained Gemini output.
+
+    This schema enforces that:
+    - primary_topic must be one of the taxonomy paths
+    - secondary_topics must all be from taxonomy paths
+    - priority must be high/medium/low
+
+    Args:
+        taxonomy_paths: List of valid taxonomy path strings
+
+    Returns:
+        JSON schema dict for Gemini response_schema parameter
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "tasks": {
+                "type": "array",
+                "description": "List of extracted tasks and action items",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "type": "string",
+                            "description": "Clear, actionable task description"
+                        },
+                        "assignee": {
+                            "type": "string",
+                            "description": "Person responsible for the task, or null if not specified",
+                            "nullable": True
+                        },
+                        "deadline": {
+                            "type": "string",
+                            "description": "Deadline or timeframe mentioned, or null if not specified",
+                            "nullable": True
+                        },
+                        "primary_topic": {
+                            "type": "string",
+                            "description": "Primary category from the taxonomy",
+                            "enum": taxonomy_paths
+                        },
+                        "secondary_topics": {
+                            "type": "array",
+                            "description": "Related categories from the taxonomy",
+                            "items": {
+                                "type": "string",
+                                "enum": taxonomy_paths
+                            }
+                        },
+                        "priority": {
+                            "type": "string",
+                            "description": "Task priority based on urgency and importance",
+                            "enum": ["high", "medium", "low"]
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "Brief context from the transcript explaining the task",
+                            "nullable": True
+                        }
+                    },
+                    "required": ["description", "primary_topic", "priority"]
+                }
+            },
+            "summary": {
+                "type": "string",
+                "description": "Brief summary of all action items identified"
+            }
+        },
+        "required": ["tasks", "summary"]
+    }
+
+
+def validate_and_fix_tasks(tasks_result: dict, taxonomy_paths: List[str]) -> dict:
+    """Validate and fix task classifications against taxonomy.
+
+    Belt-and-suspenders validation to ensure all topics are valid,
+    even though the schema should enforce this.
+
+    Args:
+        tasks_result: The extraction result from Gemini
+        taxonomy_paths: List of valid taxonomy paths
+
+    Returns:
+        Validated and fixed tasks result
+    """
+    taxonomy_set = set(taxonomy_paths)
+
+    for task in tasks_result.get("tasks", []):
+        # Validate primary_topic
+        if task.get("primary_topic") not in taxonomy_set:
+            log_structured("WARNING", f"Invalid primary_topic '{task.get('primary_topic')}', defaulting to 'General'",
+                          event="invalid_topic_fixed",
+                          original_topic=task.get("primary_topic"))
+            task["primary_topic"] = "General"
+
+        # Validate secondary_topics
+        if "secondary_topics" in task:
+            valid_secondary = [t for t in task["secondary_topics"] if t in taxonomy_set]
+            if len(valid_secondary) != len(task["secondary_topics"]):
+                invalid = set(task["secondary_topics"]) - set(valid_secondary)
+                log_structured("WARNING", f"Removed invalid secondary_topics: {invalid}",
+                              event="invalid_secondary_topics_fixed",
+                              removed_topics=list(invalid))
+            task["secondary_topics"] = valid_secondary
+
+        # Validate priority
+        if task.get("priority") not in ("high", "medium", "low"):
+            task["priority"] = "medium"
+
+    return tasks_result
+
+
 def get_transcript_content(bucket_name: str, blob_path: str) -> dict:
     """Download and parse transcript JSON from GCS."""
     storage_client = storage.Client()
@@ -210,6 +339,11 @@ def extract_tasks_with_gemini(
 ) -> dict:
     """Use Gemini to extract tasks and classify them by topic.
 
+    Uses constrained output via response_schema to guarantee that:
+    - All primary_topic values are valid taxonomy paths
+    - All secondary_topics values are valid taxonomy paths
+    - Priority is always high/medium/low
+
     Args:
         transcript: The full transcript JSON
         project_id: GCP project ID for Vertex AI
@@ -222,9 +356,9 @@ def extract_tasks_with_gemini(
     # Initialize Vertex AI
     vertexai.init(project=project_id, location=location)
 
-    # Use Gemini 2.5 Flash for fast, cost-effective extraction
-    # See: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models
-    model = GenerativeModel("gemini-2.5-flash")
+    # Use Gemini 2.0 Flash for fast, cost-effective extraction with schema support
+    # Note: response_schema requires gemini-1.5-pro, gemini-1.5-flash, or gemini-2.0-flash
+    model = GenerativeModel("gemini-2.0-flash")
 
     # Use full_text field if available, otherwise build from segments
     transcript_text = transcript.get("full_text", "")
@@ -245,87 +379,84 @@ def extract_tasks_with_gemini(
         transcript_text = transcript.get("summary", "") or transcript.get("short_abstract_summary", "") or ""
 
     if not transcript_text.strip():
-        return {"tasks": [], "error": "No transcript content available"}
+        return {"tasks": [], "summary": "No action items identified", "error": "No transcript content available"}
 
-    # Get the primary topic from the transcript
+    # Get taxonomy paths for schema constraint
+    taxonomy_paths = get_taxonomy_paths(taxonomy)
+
+    # Build the response schema with taxonomy constraints
+    response_schema = build_response_schema(taxonomy_paths)
+
+    # Get the primary topic from the transcript for context
     primary_topic = transcript.get("topic", "General")
 
-    # Format the taxonomy for the prompt
+    # Format the taxonomy for the prompt (helps model understand categories)
     taxonomy_text = format_taxonomy_for_prompt(taxonomy)
 
-    prompt = f"""Analyze the following transcript and extract any tasks, action items, or commitments mentioned.
+    # Simplified prompt - schema handles output structure
+    prompt = f"""Extract all tasks, action items, and commitments from this transcript.
 
-For each task, identify:
-1. The task description (what needs to be done)
-2. Who is responsible (if mentioned)
-3. Any deadline or timeframe mentioned
-4. The primary topic category it belongs to
-5. Any secondary topic categories it relates to
+For each task:
+- Write a clear, actionable description
+- Identify the assignee if mentioned
+- Note any deadline or timeframe
+- Classify into the most appropriate topic category
+- Assign priority (high/medium/low) based on urgency cues
 
-The transcript's primary topic is: {primary_topic}
+The transcript's overall topic is: {primary_topic}
 
-## Topic Taxonomy
-
-Classify tasks using ONLY the following hierarchical topic paths. You may extend paths with sub-categories where appropriate (e.g., "Work/Projects/Alpha" if a specific project is mentioned):
-
+## Topic Categories (choose from these)
 {taxonomy_text}
 
-## Output Format
+## Transcript
+{transcript_text[:15000]}"""
 
-Return the results as a JSON object with this structure:
-{{
-    "tasks": [
-        {{
-            "description": "Task description",
-            "assignee": "Person name or null",
-            "deadline": "Deadline if mentioned or null",
-            "primary_topic": "Primary hierarchical topic path from taxonomy",
-            "secondary_topics": ["List", "of", "secondary topics from taxonomy"],
-            "priority": "high/medium/low based on context",
-            "context": "Brief context from the transcript"
-        }}
-    ],
-    "summary": "Brief summary of the conversation's action items"
-}}
-
-If no tasks are found, return {{"tasks": [], "summary": "No action items identified"}}
-
-TRANSCRIPT:
-{transcript_text[:15000]}
-"""
-
+    # Configure generation with schema constraint
     generation_config = GenerationConfig(
-        temperature=0.2,
+        temperature=0.1,  # Lower temperature for more consistent classification
         max_output_tokens=2048,
-        response_mime_type="application/json"
+        response_mime_type="application/json",
+        response_schema=response_schema  # Enforce taxonomy compliance
     )
 
     try:
+        log_structured("DEBUG", "Calling Gemini with constrained output schema",
+                      event="gemini_call_started",
+                      taxonomy_count=len(taxonomy_paths))
+
         response = model.generate_content(
             prompt,
             generation_config=generation_config
         )
 
-        # Parse the JSON response
+        # Parse the JSON response (should always be valid due to schema)
         result_text = response.text.strip()
 
-        # Handle potential markdown code blocks
+        # Handle potential markdown code blocks (shouldn't happen with response_schema but just in case)
         if result_text.startswith("```"):
             result_text = re.sub(r'^```(?:json)?\n?', '', result_text)
             result_text = re.sub(r'\n?```$', '', result_text)
 
         result = json.loads(result_text)
+
+        # Validate and fix any edge cases (belt-and-suspenders)
+        result = validate_and_fix_tasks(result, taxonomy_paths)
+
+        log_structured("DEBUG", "Gemini extraction successful",
+                      event="gemini_call_completed",
+                      task_count=len(result.get("tasks", [])))
+
         return result
 
     except json.JSONDecodeError as e:
         log_structured("WARNING", f"Failed to parse Gemini response as JSON: {e}",
                       event="gemini_parse_error", error=str(e))
-        return {"tasks": [], "error": f"JSON parse error: {str(e)}"}
+        return {"tasks": [], "summary": "Extraction failed", "error": f"JSON parse error: {str(e)}"}
 
     except Exception as e:
         log_structured("ERROR", f"Gemini API error: {e}",
                       event="gemini_api_error", error=str(e))
-        return {"tasks": [], "error": str(e)}
+        return {"tasks": [], "summary": "Extraction failed", "error": str(e)}
 
 
 def save_tasks(
